@@ -11,7 +11,7 @@ const URLS = {
   link2: './data/TransaccionEquiposActivo.csv',
   link3: './data/GestiondePOS.csv',
   link4u: './data/tablasConversion - USUARIO.csv',
-  link4a: './data/archivo4a.csv',
+  link4a: './data/tablasConversion - ALIADOS.csv',
 };
 
 // ─── RAW DATA STORAGE ─────────────────────────────────────────────────────────
