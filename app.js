@@ -7,10 +7,10 @@
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const URLS = {
-  link1: './data/archivo1.csv',
-  link2: './data/archivo2.csv',
-  link3: './data/archivo3.csv',
-  link4u: './data/archivo4u.csv',
+  link1: './data/AfiliacionesR4.csv',
+  link2: './data/TransaccionEquiposActivo.csv',
+  link3: './data/GestiondePOS.csv',
+  link4u: './data/tablasConversion - USUARIO.csv',
   link4a: './data/archivo4a.csv',
 };
 
