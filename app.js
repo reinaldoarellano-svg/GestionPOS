@@ -160,7 +160,8 @@ function normalizeData1(rows) {
       fecha: parseDate(get('FECHA','DATE')),
       estado: get('ESTADO','STATE','REGION'),
       categoria: get('CATEGOR','CATEGORY','RUBRO'),
-      usuario: get('USUARIO','USER'),
+      // Buscamos específicamente USUARIO CREADO
+      usuario: get('USUARIO CREADO', 'USUARIO CREADOR', 'USUARIO', 'USER'), 
       rol: get('ROL','ROLE'),
       manejador: get('MANEJADOR','HANDLER','GESTOR'),
       proveedor: get('PROVEEDOR','PROVIDER'),
@@ -276,14 +277,22 @@ function convertAliado(code) { return code ? (CONV.aliados[code.toUpperCase()] |
 
 function applyConversions() {
   RAW.link1.forEach(r => {
-    r.usuario_nombre = convertUser(r.usuario);
+    const uCode = (r.usuario || '').toUpperCase();
+    const userObj = CONV.users[uCode]; // Buscamos el código en la tabla de Usuarios
+    
+    r.usuario_nombre = userObj ? userObj.name : r.usuario;
+    r.usuario_empresa = userObj ? userObj.empresa : ''; // Guardamos la empresa
     r.manejador_nombre = convertAliado(r.manejador);
   });
+  
   RAW.link2.forEach(r => {
     r.manejador_nombre = convertAliado(r.manejador);
   });
+  
   RAW.link3.forEach(r => {
-    r.usuario_creador_nombre = convertUser(r.usuario_creador);
+    const uCode = (r.usuario_creador || '').toUpperCase();
+    const userObj = CONV.users[uCode];
+    r.usuario_creador_nombre = userObj ? userObj.name : r.usuario_creador;
     r.manejador_nombre = convertAliado(r.manejador);
   });
 }
@@ -387,7 +396,7 @@ function renderAll() {
 }
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────
-// ─── KPIs ─────────────────────────────────────────────────────────────────────
+
 function renderKPIs() {
   const d1 = FILTERED.link1;
   const d2 = FILTERED.link2;
@@ -446,22 +455,17 @@ function renderKPIs() {
   const promDiario = (d1.filter(r=>r.fecha).length / diasConData).toFixed(1);
   setKPI('kpi-promedioDiario', promDiario);
 
-  // REQUISITO 5: Recuento de Usuarios Creadores cuya empresa sea R4
-  // Filtramos la gestión técnica (d3) buscando el código de usuario en el diccionario
-  const r4Data = d3.filter(r => {
-    const uCode = (r.usuario_creador || '').toUpperCase();
-    const userObj = CONV.users[uCode];
-    return userObj && userObj.empresa === 'R4';
-  });
+// REQUISITO 5: Recuento de Usuarios Creadores cuya empresa sea R4 en Afiliaciones
+  // Filtramos la data de afiliaciones (d1) buscando los que tengan empresa 'R4'
+  const afiliacionesR4 = d1.filter(r => r.usuario_empresa === 'R4');
   
-  // Obtenemos los creadores únicos
-  const r4UsersSet = new Set(r4Data.map(r => r.usuario_creador));
-  const totalR4Users = r4UsersSet.size;
+  // Obtenemos los códigos únicos de esos usuarios
+  const usuariosUnicosR4 = new Set(afiliacionesR4.map(r => r.usuario).filter(Boolean));
   
-  setKPI('kpi-usuariosR4', `${totalR4Users} usuarios`);
-  setText('kpi-usuariosR4-sub', `Total gestiones R4: ${fmtN(r4Data.length)}`);
+  setKPI('kpi-usuariosR4', `${usuariosUnicosR4.size} usuarios`);
+  setText('kpi-usuariosR4-sub', `Afiliaciones por R4: ${fmtN(afiliacionesR4.length)}`);
   
-  // Actualizamos la etiqueta HTML de este KPI para mayor claridad
+  // Actualizamos la etiqueta HTML de este KPI
   const kpiR4Label = document.getElementById('kpi-usuariosR4').parentNode.querySelector('.kpi-label');
   if(kpiR4Label) kpiR4Label.textContent = 'Usuarios Creadores (R4)';
 
