@@ -387,60 +387,85 @@ function renderAll() {
 }
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────
+// ─── KPIs ─────────────────────────────────────────────────────────────────────
 function renderKPIs() {
   const d1 = FILTERED.link1;
   const d2 = FILTERED.link2;
   const d3 = FILTERED.link3;
 
+  // Afiliados Totales
   const totalAfil = new Set(d1.map(r => r.cod_afiliado)).size;
   setKPI('kpi-totalAfiliados', fmtN(totalAfil));
 
   const totalTerminales = d2.length;
-  const SIN_ACTIVIDAD_DAYS = 30;
-  const hoy = new Date();
-  const sinActividad = d2.filter(r => {
-    if (!r.fecha_ultima) return true;
-    const diff = (hoy - r.fecha_ultima) / 86400000;
-    return diff > SIN_ACTIVIDAD_DAYS;
-  }).length;
+  
+  // REQUISITO 1: Terminales sin actividad (cantidad de transacciones == 0)
+  const sinActividad = d2.filter(r => r.cantidad_tx === 0).length;
   const pctSin = totalTerminales ? ((sinActividad / totalTerminales) * 100).toFixed(1) : 0;
   
   setKPI('kpi-terminalesActivos', fmtN(totalTerminales));
-  setText('kpi-terminales-sub', `${pctSin}% sin actividad (+${SIN_ACTIVIDAD_DAYS}d)`);
+  setText('kpi-terminales-sub', 'Total en parque');
   setKPI('kpi-sinActividad', fmtN(sinActividad));
-  setText('kpi-sinActividad-sub', `de ${fmtN(totalTerminales)} terminales (${pctSin}%)`);
+  setText('kpi-sinActividad-sub', `de ${fmtN(totalTerminales)} equipos (0 tx)`);
 
+  // REQUISITO 2: Monto transaccional en MM Bs + Promedio Bs por Equipo
   const montoTotal = d2.reduce((s, r) => s + r.monto, 0);
   const montoMM = montoTotal / 1e6;
-  setKPI('kpi-montoBS', 'Bs ' + fmtN(montoTotal));
-  setText('kpi-montoMM-sub', fmtDec(montoMM, 3) + ' MM Bs');
+  const promMonto = totalTerminales ? montoTotal / totalTerminales : 0;
+  
+  setKPI('kpi-montoBS', fmtDec(montoMM, 2) + ' MM Bs');
+  setText('kpi-montoMM-sub', `Promedio: Bs ${fmtN(Math.round(promMonto))} / equipo`);
 
+  // REQUISITO 3: Cantidad transacciones + Promedio Tx por Equipo
   const cantTx = d2.reduce((s, r) => s + r.cantidad_tx, 0);
+  const promTx = totalTerminales ? cantTx / totalTerminales : 0;
+  
   setKPI('kpi-cantTx', fmtN(cantTx));
+  setText('kpi-cantTx-sub', `Promedio: ${Math.round(promTx)} tx / equipo`);
 
-  const cutoff12 = new Date(); cutoff12.setMonth(cutoff12.getMonth() - 12);
-  const last12 = d1.filter(r => r.fecha && r.fecha >= cutoff12);
-  const byMonth12 = groupBy(last12, r => r.fecha ? `${r.fecha.getFullYear()}-${r.fecha.getMonth()}` : '?');
-  const monthsWithData = Object.keys(byMonth12).filter(k => k !== '?').length || 1;
-  const promedioMensual = Math.round(last12.length / monthsWithData);
-  setKPI('kpi-promedioMensual', fmtN(promedioMensual));
+  // REQUISITO 4: Promedio Mensual Afiliaciones vs Año Pasado
+  const hoy = new Date();
+  const cy = hoy.getFullYear();
+  const afilCY = d1.filter(r => r.fecha && r.fecha.getFullYear() === cy);
+  const afilLY = d1.filter(r => r.fecha && r.fecha.getFullYear() === cy - 1);
+  
+  const monthsCY = hoy.getMonth() + 1; // Meses transcurridos este año (1-12)
+  const promCY = Math.round(afilCY.length / monthsCY);
+  const promLY = Math.round(afilLY.length / 12) || 1; // Evitar división por cero
+  
+  const diffPct = ((promCY - promLY) / promLY) * 100;
+  const sign = diffPct > 0 ? '+' : '';
+  
+  setKPI('kpi-promedioMensual', fmtN(promCY));
+  const promMenSub = document.getElementById('kpi-promedioMensual').parentNode.querySelector('.kpi-sub');
+  if(promMenSub) promMenSub.textContent = `${sign}${diffPct.toFixed(1)}% vs año ant. (${fmtN(promLY)}/mes)`;
 
+  // Promedio Diario
   const byDay = groupBy(d1.filter(r => r.fecha), r => r.fecha.toISOString().slice(0,10));
   const diasConData = Object.keys(byDay).length || 1;
   const promDiario = (d1.filter(r=>r.fecha).length / diasConData).toFixed(1);
   setKPI('kpi-promedioDiario', promDiario);
 
-  const r4Data = d1.filter(r => r.rol && r.rol.toUpperCase().includes('R4'));
-  const byDayR4 = groupBy(r4Data.filter(r=>r.fecha), r => r.fecha.toISOString().slice(0,10));
-  const diasR4 = Object.keys(byDayR4).length || 1;
-  const usersR4PerDay = {};
-  Object.values(byDayR4).forEach(rows => {
-    rows.forEach(r => { usersR4PerDay[r.usuario] = (usersR4PerDay[r.usuario] || 0) + 1; });
+  // REQUISITO 5: Recuento de Usuarios Creadores cuya empresa sea R4
+  // Filtramos la gestión técnica (d3) buscando el código de usuario en el diccionario
+  const r4Data = d3.filter(r => {
+    const uCode = (r.usuario_creador || '').toUpperCase();
+    const userObj = CONV.users[uCode];
+    return userObj && userObj.empresa === 'R4';
   });
-  const avgGestR4 = (r4Data.length / diasR4).toFixed(1);
-  setKPI('kpi-usuariosR4', `${Object.keys(usersR4PerDay).length} usuarios`);
-  setText('kpi-usuariosR4-sub', `Prom. ${avgGestR4} afil/día`);
+  
+  // Obtenemos los creadores únicos
+  const r4UsersSet = new Set(r4Data.map(r => r.usuario_creador));
+  const totalR4Users = r4UsersSet.size;
+  
+  setKPI('kpi-usuariosR4', `${totalR4Users} usuarios`);
+  setText('kpi-usuariosR4-sub', `Total gestiones R4: ${fmtN(r4Data.length)}`);
+  
+  // Actualizamos la etiqueta HTML de este KPI para mayor claridad
+  const kpiR4Label = document.getElementById('kpi-usuariosR4').parentNode.querySelector('.kpi-label');
+  if(kpiR4Label) kpiR4Label.textContent = 'Usuarios Creadores (R4)';
 
+  // Gestión Diaria Técnica
   const todayStr = hoy.toISOString().slice(0,10);
   const todayGest = d3.filter(r => r.fecha && r.fecha.toISOString().slice(0,10) === todayStr);
   const byDayGest = groupBy(d3.filter(r=>r.fecha), r => r.fecha.toISOString().slice(0,10));
@@ -453,14 +478,17 @@ function renderKPIs() {
   setKPI('kpi-desinstDiarias', useRows.filter(r => r.tipo === 'Desinstalación').length);
   setKPI('kpi-correctDiarios', useRows.filter(r => r.tipo === 'Correctivo').length);
 
+  // Equipos Activos Recientes
   const ACTIVE_DAYS = 7;
   const cutoffActive = new Date(); cutoffActive.setDate(cutoffActive.getDate() - ACTIVE_DAYS);
   const equiposActivos = d2.filter(r => r.fecha_ultima && r.fecha_ultima >= cutoffActive).length;
   setKPI('kpi-equiposActivos', fmtN(equiposActivos));
 
+  // Tasas Modificadas
   const tasasModif = d1.filter(r => r.tasa_modificada && r.tasa_modificada !== '0' && r.tasa_modificada.trim() !== '').length;
   setKPI('kpi-tasasModificadas', fmtN(tasasModif));
 
+  // Actualizar Minicharts
   renderResumenMinicharts(d1, d3);
 }
 
