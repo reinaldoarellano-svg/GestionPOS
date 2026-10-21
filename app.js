@@ -248,8 +248,12 @@ function buildConversionTables() {
     };
     const code = get('COD') || get('USUARIO') || get('USER') || get('LOGIN');
     const name = get('NOMBRE') || get('NAME') || get('FULL');
-    if (code && name) CONV.users[code.toUpperCase()] = name;
+    const empresa = get('EMPRESA') || get('COMPANY') || ''; // Extraer la empresa
+    
+    // Guardamos el objeto completo del usuario (nombre y empresa)
+    if (code) CONV.users[code.toUpperCase()] = { name: name || code, empresa: empresa.toUpperCase() };
   });
+
   RAW.link4a.forEach(r => {
     const keys = Object.keys(r);
     const get = n => {
@@ -262,7 +266,12 @@ function buildConversionTables() {
   });
 }
 
-function convertUser(code) { return code ? (CONV.users[code.toUpperCase()] || code) : code; }
+function convertUser(code) { 
+  if (!code) return code;
+  const u = CONV.users[code.toUpperCase()];
+  return u ? u.name : code; 
+}
+
 function convertAliado(code) { return code ? (CONV.aliados[code.toUpperCase()] || code) : code; }
 
 function applyConversions() {
