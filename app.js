@@ -7,11 +7,11 @@
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const URLS = {
-  link1: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSpB-VtUnuokLAEGDu9J5XnD3OecvwxioHEjza1IbLiapmBd3LJG254lmMtR0MTid29lWr6JFA8zamP/pub?gid=0&single=true&output=csv',
-  link2: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_99pDY-H4RtU09tGd9AIKqLnBbBjPxqcfZQZZt7gGWus2_cYTGW6gVspgXmXyZhiZbU2qm2Z6YFVp/pub?gid=0&single=true&output=csv',
-  link3: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3gfmIzmNu5gQSr3QvU1IAYnUnQXkSeylsJLlSdSwvmu8052IyasJl8sEALz05nIIJcQyyd61N8-LC/pub?gid=0&single=true&output=csv',
-  link4u: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLizes4L8qiJU4YN-hmJAtXY0JKeenA3iJYZPZH1OmuAKBR_fDA-lXUeHARiBfhkOXdwcxLW0MrLAn/pub?gid=0&single=true&output=csv',
-  link4a: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLizes4L8qiJU4YN-hmJAtXY0JKeenA3iJYZPZH1OmuAKBR_fDA-lXUeHARiBfhkOXdwcxLW0MrLAn/pub?gid=504230782&single=true&output=csv',
+  link1: './data/archivo1.csv',
+  link2: './data/archivo2.csv',
+  link3: './data/archivo3.csv',
+  link4u: './data/archivo4u.csv',
+  link4a: './data/archivo4a.csv',
 };
 
 // ─── RAW DATA STORAGE ─────────────────────────────────────────────────────────
